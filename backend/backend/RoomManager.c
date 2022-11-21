@@ -403,7 +403,43 @@ BOOL StartGame(_Inout_ PCONNECTION_INFO pConnInfo)
 
 BOOL PlayerSelectTeam(_Inout_ PCONNECTION_INFO pConnInfo, _In_ UINT TeamMemberCnt, _In_ UINT32 TeamMemberList[])
 {
-    return TRUE;
+    PGAME_ROOM pRoom = pConnInfo->pRoom;
+    BOOL bSuccess = FALSE;
+    if (!pRoom)
+        return ReplyPlayerSelectTeam(pConnInfo, FALSE, "You are not in a room.");
+
+    AcquireSRWLockExclusive(&pRoom->PlayerListLock);
+    __try {
+        // check bGaming
+        if (!pRoom->bGaming)
+        {
+            bSuccess = ReplyPlayerSelectTeam(pConnInfo, FALSE, "Game hasn't started yet.");
+            __leave;
+        }
+        // check the leader
+        if (pRoom->LeaderIndex != pConnInfo->PlayingIndex)
+        {
+            bSuccess = ReplyPlayerSelectTeam(pConnInfo, FALSE, "You are not the leader.");
+            __leave;
+        }
+        // check the number of people
+        if ( TeamMemberCnt > pRoom->PlayingCount )
+        {
+            bSuccess = ReplyPlayerSelectTeam(pConnInfo, FALSE, "The number of people selected exceeded the limit.");
+            __leave;
+        }
+        if (!ReplyPlayerSelectTeam(pConnInfo, TRUE, NULL))
+            __leave;
+        if (!BroadcastSelectTeam(pRoom, TeamMemberCnt, TeamMemberList ))
+            __leave;
+        if (!BroadcastRoomStatus(pRoom))
+            __leave;
+        bSuccess = TRUE;
+    }
+    __finally{
+        ReleaseSRWLockExclusive(&pRoom->PlayerListLock);
+    }
+    return bSuccess;
 }
 
 BOOL PlayerConfirmTeam(_Inout_ PCONNECTION_INFO pConnInfo)
