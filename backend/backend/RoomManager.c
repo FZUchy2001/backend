@@ -432,8 +432,6 @@ BOOL PlayerSelectTeam(_Inout_ PCONNECTION_INFO pConnInfo, _In_ UINT TeamMemberCn
             __leave;
         if (!BroadcastSelectTeam(pRoom, TeamMemberCnt, TeamMemberList ))
             __leave;
-        if (!BroadcastRoomStatus(pRoom))
-            __leave;
         bSuccess = TRUE;
     }
     __finally{
