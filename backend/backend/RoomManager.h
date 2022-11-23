@@ -63,9 +63,14 @@ typedef struct _GAME_ROOM
 
     UINT RoleList[ROOM_PLAYER_MAX];
 
+    UINT Vote[ROOM_PLAYER_MAX];
     UINT LeaderIndex; // current leader
     BOOL bFairyEnabled;
     UINT FairyIndex;
+
+    UINT TeamMemberCnt;
+    UINT TeamMemberList[ROOM_PLAYER_MAX];
+
 }GAME_ROOM, * PGAME_ROOM;
 
 VOID InitRoomManager(VOID);
