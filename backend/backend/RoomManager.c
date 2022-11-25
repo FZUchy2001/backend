@@ -547,7 +547,8 @@ BOOL PlayerFairyInspect(_Inout_ PCONNECTION_INFO pConnInfo, _In_ UINT ID)
     BOOL bSuccess = FALSE;
     if (!pRoom)
         return ReplyPlayerFairyInspect(pConnInfo, FALSE, "You are not in a room.");
-
+    if (!pRoom->bFairyEnabled)
+        return ReplyPlayerFairyInspect(pConnInfo, FALSE, "The room doesn't have the fairy.");
     AcquireSRWLockExclusive(&pRoom->PlayerListLock);
     __try
     {
@@ -644,5 +645,28 @@ BOOL PlayerAssassinate(_Inout_ PCONNECTION_INFO pConnInfo, _In_ UINT ID)
 
 BOOL PlayerTextMessage(_Inout_ PCONNECTION_INFO pConnInfo, _In_z_ const CHAR Message[])
 {
-    return TRUE;
+    PGAME_ROOM pRoom = pConnInfo->pRoom;
+    BOOL bSuccess = FALSE;
+    if (!pRoom)
+        return ReplyPlayerTextMessage(pConnInfo, FALSE, "You are not in a room.");
+
+    AcquireSRWLockExclusive(&pRoom->PlayerListLock);
+    __try
+    {
+        if (!pRoom->bGaming)
+        {
+            bSuccess = ReplyPlayerTextMessage(pConnInfo, FALSE, "Game hasn't started yet.");
+            __leave;
+        }
+        if (!ReplyPlayerTextMessage(pConnInfo, TRUE, NULL))
+            __leave;
+        if (!BroadcastTextMessage(pRoom, pConnInfo->PlayingIndex , Message))
+            __leave;
+        bSuccess = TRUE;
+    }
+    __finally
+    {
+        ReleaseSRWLockExclusive(&pConnInfo->pRoom->PlayerListLock);
+    }
+    return bSuccess;
 }
