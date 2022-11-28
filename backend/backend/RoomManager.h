@@ -1,5 +1,6 @@
 #pragma once
 #include "common.h"
+#include "MessageSender.h"
 
 #define ROOM_NUMBER_MIN 10000
 #define ROOM_NUMBER_MAX 99999
@@ -62,6 +63,9 @@ typedef struct _GAME_ROOM
                                               //     except pConnInfo field (will be set to NULL if a player is offline)
 
     UINT RoleList[ROOM_PLAYER_MAX];
+
+    UINT VotedCount;
+    VOTELIST VotedIDList[ROOM_PLAYER_MAX];
 
     UINT Vote[ROOM_PLAYER_MAX];
     UINT LeaderIndex; // current leader

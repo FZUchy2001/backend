@@ -423,6 +423,8 @@ BOOL PlayerSelectTeam(_Inout_ PCONNECTION_INFO pConnInfo, _In_ UINT TeamMemberCn
             __leave;
         }
         // check the number of people
+        // 
+        // TODO: fix wrong count
         if ( TeamMemberCnt > pRoom->PlayingCount )
         {
             bSuccess = ReplyPlayerSelectTeam(pConnInfo, FALSE, "The number of people selected exceeded the limit.");
@@ -466,7 +468,8 @@ BOOL PlayerConfirmTeam(_Inout_ PCONNECTION_INFO pConnInfo)
             __leave;
         }
 
-        if (pRoom->TeamMemberCnt > pRoom->PlayingCount)
+        // TODO: fix wrong count
+        if (pRoom->TeamMemberCnt == pRoom->PlayingCount)
         {
             bSuccess = ReplyPlayerConfirmTeam(pConnInfo, FALSE, "The number of people selected exceeded the limit.");
             __leave;
@@ -491,20 +494,37 @@ BOOL PlayerVoteTeam(_Inout_ PCONNECTION_INFO pConnInfo, _In_ BOOL bVote)
     if (!pRoom)
         return ReplyPlayerVoteTeam(pConnInfo, FALSE, "You are not in a room.");
 
+
     AcquireSRWLockExclusive(&pRoom->PlayerListLock);
     __try {
         // check bGaming
+        
         if (!pRoom->bGaming)
         {
             bSuccess = ReplyPlayerVoteTeam(pConnInfo, FALSE, "Game hasn't started yet.");
             __leave;
         }
-
+        for (int i = 0; i < pRoom->VotedCount; i++) {
+            if (pRoom->VotedIDList[i].ID == pConnInfo->PlayingIndex) {
+                bSuccess = ReplyPlayerVoteTeam(pConnInfo, FALSE, "You voted");
+                __leave;
+            }
+        }
         if (!ReplyPlayerVoteTeam(pConnInfo, TRUE, NULL))
             __leave;
-       // if (!BroadcastVoteTeam(pRoom))
-         //   __leave;
+        pRoom->VotedIDList[pRoom->VotedCount++] = (VOTELIST){ pConnInfo->PlayingIndex ,bVote };
         
+        if (!BroadcastVoteTeamProgress(pRoom, pRoom->VotedCount, pRoom->VotedIDList))
+            __leave;
+        if (pRoom->VotedCount == pRoom->PlayingCount) {
+            UINT cnt = 0;
+            for (int i = 0; i < pRoom->VotedCount; i++) {
+                cnt += pRoom->VotedIDList[i].VoteResult;
+            }
+            if (!BroadcastVoteTeam(pRoom, cnt+cnt > pRoom->PlayingCount, pRoom->VotedCount, pRoom->VotedIDList));
+                __leave;
+            pRoom->VotedCount = 0;
+        }
         bSuccess = TRUE;
     }
     __finally {

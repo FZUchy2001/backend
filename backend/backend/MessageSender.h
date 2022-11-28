@@ -1,6 +1,8 @@
 #pragma once
 #include "common.h"
-#include "HttpSendRecv.h"
+
+typedef struct _GAME_ROOM GAME_ROOM, * PGAME_ROOM;
+typedef struct _CONNECTION_INFO CONNECTION_INFO, * PCONNECTION_INFO;
 
 typedef struct
 {
@@ -8,7 +10,7 @@ typedef struct
     UINT HintType;
 }HINTLIST, *PHINTLIST;
 
-typedef struct
+typedef struct _VOTELIST
 {
     UINT ID;
     BOOL VoteResult;
